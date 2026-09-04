@@ -1,24 +1,26 @@
-# Codex Vault — obsługa wiersza poleceń
+# Codex Vault command-line interface
 
-Program `CodexVault.Cli.exe` wykonuje operacje na tym samym Windows Credential Managerze co aplikacja okienkowa. Nie otwiera panelu Codex Vault. Należy uruchamiać go jako ten sam użytkownik Windows, który zapisał sekrety.
+`CodexVault.Cli.exe` operates on the same Windows Credential Manager entries as the graphical application. It does not open the Codex Vault window. Run it as the same Windows user who owns the credentials.
 
-## Polecenia
+## Commands
 
-| Polecenie | Działanie |
+| Command | Behavior |
 |---|---|
-| `list [--filter TEKST]` | Wypisuje nazwy, po jednej w wierszu; nigdy wartości |
-| `add NAZWA [--stdin]` | Dodaje nowy sekret i odmawia nadpisania istniejącego |
-| `update NAZWA [--stdin]` | Zmienia wartość istniejącego sekretu |
-| `rotate NAZWA [--stdin]` | Alias polecenia `update` |
-| `get NAZWA` | Wypisuje jawną wartość na standardowe wyjście |
-| `exists NAZWA` | Wypisuje `true` albo `false` |
-| `rename STARA NOWA` | Zmienia nazwę bez zmiany wartości |
-| `delete NAZWA [--yes]` | Usuwa sekret; `--yes` pomija pytanie |
-| `version` | Pokazuje wersję CLI |
+| `list [--filter TEXT]` | Writes names, one per line; never writes values |
+| `add NAME [--stdin]` | Adds a secret and refuses to overwrite an existing entry |
+| `update NAME [--stdin]` | Replaces the value of an existing secret |
+| `rotate NAME [--stdin]` | Alias for `update` |
+| `get NAME` | Writes the plaintext value to standard output |
+| `exists NAME` | Writes `true` or `false` |
+| `rename OLD NEW` | Changes the name without changing the value |
+| `delete NAME [--yes]` | Deletes a secret; `--yes` skips the prompt |
+| `version` | Displays the CLI version |
 
-Nazwy `Codex.Shared/*`, `SharedSecrets/*` i `Producent.Aplikacja/*` są zachowywane. Jeśli prefiks zostanie pominięty, CLI doda `Codex.Shared/`.
+Names beginning with `Codex.Shared/`, `SharedSecrets/`, or `Vendor.Application/` are preserved. When a prefix is omitted, the CLI prepends `Codex.Shared/`.
 
-## Użycie ręczne
+## Interactive use
+
+Installed location:
 
 ```powershell
 cd "$env:LOCALAPPDATA\Programs\Codex Vault"
@@ -29,31 +31,39 @@ cd "$env:LOCALAPPDATA\Programs\Codex Vault"
 .\CodexVault.Cli.exe delete Acme.Mail/ImapPassword
 ```
 
-Przy dodawaniu i aktualizacji program prosi o wartość w ukrytym trybie. Na ekranie widać tylko gwiazdki.
+For `add` and `update`, the CLI asks for the value using a hidden prompt. Only masking characters are displayed.
 
-## Automatyzacja i ChatGPT/Codex
+## Automation and LLM agents
 
-Aplikacja sterująca może przesłać pojedynczy wiersz na standardowe wejście procesu:
+A controlling process can send exactly one line to the CLI through standard input:
 
 ```powershell
-Get-Content .\wartosc-tymczasowa.txt | .\CodexVault.Cli.exe add SharedSecrets/Example/Key --stdin
+Get-Content .\temporary-value.txt |
+  .\CodexVault.Cli.exe add SharedSecrets/Example/Key --stdin
 ```
 
-Plik w przykładzie służy tylko do pokazania mechanizmu. Dla prawdziwego sekretu bezpieczniej przekazać wartość bezpośrednio z pamięci procesu i nie tworzyć pliku. CLI celowo nie przyjmuje sekretu w argumencie `--value`.
+The file above demonstrates the mechanism only. For a real secret, pass the value directly from process memory and do not create a temporary file. The CLI intentionally provides no `--value` argument because command-line arguments can appear in shell history and process inspection tools.
 
-Lokalny agent ChatGPT/Codex może wywołać te same polecenia, jeżeli ma uprawnienie do uruchamiania programu. Agent powinien otrzymywać wartość przez standardowe wejście. Wywołanie `get` powoduje, że jawna wartość pojawia się w wyjściu procesu i może trafić do kontekstu narzędzia, dlatego należy używać go tylko wtedy, gdy jest to świadomie potrzebne.
+A local ChatGPT/Codex agent can run the same commands when it has permission to launch the executable. The agent should send new values through standard input. The `get` command puts the plaintext value in process output, where it may enter tool output or model context. Use it only when consciously required.
 
-Do integracji aplikacji produkcyjnej bezpieczniejszy jest bezpośredni odczyt Windows Credential Managera opisany w [`INTEGRATION.md`](INTEGRATION.md): sekret nie przechodzi wtedy przez wyjście innego procesu.
+For production applications, direct Windows Credential Manager access is safer than spawning the CLI: the secret does not cross another process's standard output. See the **[application integration guide](INTEGRATION.md)**.
 
-## Kody zakończenia
+## Machine-readable contract
 
-- `0` — operacja zakończona powodzeniem;
-- `1` — błąd operacji albo anulowanie potwierdzenia;
-- `2` — nieprawidłowa składnia polecenia;
-- `3` — nie znaleziono wskazanego sekretu (także wynik `exists`, gdy sekret nie istnieje).
+- Successful data is written to standard output.
+- Diagnostic messages are written to standard error.
+- `list` writes one credential name per line.
+- `get` writes the value followed by a newline.
+- `exists` writes `true` and exits with `0`, or writes `false` and exits with `3`.
+- Secret input for `--stdin` is one line; the line ending is not stored.
 
-Komunikaty błędów trafiają na standardowe wyjście błędów, a dane przeznaczone dla automatyzacji — na standardowe wyjście.
+Exit codes:
 
-## Windows Hello i granice ochrony
+- `0` — success;
+- `1` — operation failed or confirmation was declined;
+- `2` — invalid command syntax;
+- `3` — the requested entry does not exist.
 
-CLI nie pokazuje panelu aplikacji i nie uruchamia Windows Hello. Dzięki temu nadaje się do automatyzacji, ale oznacza to również, że każdy proces działający jako ten sam użytkownik Windows może spróbować je wywołać. Faktyczny dostęp do sekretów kontroluje Windows Credential Manager w kontekście konta użytkownika. Prefiksy nazw porządkują wpisy, lecz nie są osobnymi granicami uprawnień.
+## Windows Hello and the security boundary
+
+The CLI neither opens the graphical application nor invokes Windows Hello. This enables unattended automation, but it also means that another process running as the same Windows user can attempt to call it. Windows Credential Manager enforces the actual credential access in the user's security context. Naming prefixes organize entries; they are not separate access-control boundaries.

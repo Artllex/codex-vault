@@ -34,12 +34,12 @@ internal static class Program
                 "rename" => Rename(args[1..]),
                 "delete" or "remove" => Delete(args[1..]),
                 "version" or "--version" or "-v" => Version(),
-                _ => UsageError($"Nieznane polecenie: {args[0]}")
+                _ => UsageError($"Unknown command: {args[0]}")
             };
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Błąd: {ex.Message}");
+            Console.Error.WriteLine($"Error: {ex.Message}");
             return OperationFailed;
         }
     }
@@ -48,7 +48,7 @@ internal static class Program
     {
         string? filter = null;
         if (args.Length == 2 && args[0] is "--filter" or "-f") filter = args[1];
-        else if (args.Length != 0) return UsageError("Użycie: CodexVault.Cli.exe list [--filter TEKST]");
+        else if (args.Length != 0) return UsageError("Usage: CodexVault.Cli.exe list [--filter TEXT]");
 
         var names = Service.List();
         if (!string.IsNullOrWhiteSpace(filter))
@@ -60,14 +60,14 @@ internal static class Program
     private static int Save(string[] args, bool overwrite)
     {
         if (args.Length is < 1 or > 2 || (args.Length == 2 && args[1] != "--stdin"))
-            return UsageError($"Użycie: CodexVault.Cli.exe {(overwrite ? "update" : "add")} NAZWA [--stdin]");
+            return UsageError($"Usage: CodexVault.Cli.exe {(overwrite ? "update" : "add")} NAME [--stdin]");
 
         var requestedName = NormalizeName(args[0]);
         var exists = Contains(requestedName);
         if (overwrite && !exists) return Missing(requestedName);
         if (!overwrite && exists)
         {
-            Console.Error.WriteLine($"Sekret już istnieje: {requestedName}");
+            Console.Error.WriteLine($"Secret already exists: {requestedName}");
             return OperationFailed;
         }
         using var secret = args.Length == 2 ? ReadSecretFromStandardInput() : ReadSecretInteractively();
@@ -78,7 +78,7 @@ internal static class Program
 
     private static int Get(string[] args)
     {
-        if (args.Length != 1) return UsageError("Użycie: CodexVault.Cli.exe get NAZWA");
+        if (args.Length != 1) return UsageError("Usage: CodexVault.Cli.exe get NAME");
         var name = NormalizeName(args[0]);
         if (!Contains(name)) return Missing(name);
 
@@ -89,7 +89,7 @@ internal static class Program
 
     private static int Exists(string[] args)
     {
-        if (args.Length != 1) return UsageError("Użycie: CodexVault.Cli.exe exists NAZWA");
+        if (args.Length != 1) return UsageError("Usage: CodexVault.Cli.exe exists NAME");
         var name = NormalizeName(args[0]);
         var exists = Contains(name);
         Console.Out.WriteLine(exists ? "true" : "false");
@@ -98,7 +98,7 @@ internal static class Program
 
     private static int Rename(string[] args)
     {
-        if (args.Length != 2) return UsageError("Użycie: CodexVault.Cli.exe rename STARA_NAZWA NOWA_NAZWA");
+        if (args.Length != 2) return UsageError("Usage: CodexVault.Cli.exe rename OLD_NAME NEW_NAME");
         var oldName = NormalizeName(args[0]);
         var newName = NormalizeName(args[1]);
         if (!Contains(oldName)) return Missing(oldName);
@@ -109,7 +109,7 @@ internal static class Program
     private static int Delete(string[] args)
     {
         if (args.Length is < 1 or > 2 || (args.Length == 2 && args[1] != "--yes"))
-            return UsageError("Użycie: CodexVault.Cli.exe delete NAZWA [--yes]");
+            return UsageError("Usage: CodexVault.Cli.exe delete NAME [--yes]");
 
         var name = NormalizeName(args[0]);
         if (!Contains(name)) return Missing(name);
@@ -132,9 +132,9 @@ internal static class Program
     private static SecureString ReadSecretInteractively()
     {
         if (Console.IsInputRedirected)
-            throw new InvalidOperationException("Brak interaktywnego terminala. Przekaż wartość przez standardowe wejście i dodaj opcję --stdin.");
+            throw new InvalidOperationException("No interactive terminal is available. Send the value through standard input and add --stdin.");
 
-        Console.Error.Write("Wartość sekretu: ");
+        Console.Error.Write("Secret value: ");
         var result = new SecureString();
         while (true)
         {
@@ -194,8 +194,8 @@ internal static class Program
     private static bool ConfirmDelete(string name)
     {
         if (Console.IsInputRedirected)
-            throw new InvalidOperationException("Brak interaktywnego terminala. Użyj opcji --yes, aby potwierdzić usunięcie.");
-        Console.Error.Write($"Usunąć sekret '{name}'? [t/N] ");
+            throw new InvalidOperationException("No interactive terminal is available. Use --yes to confirm deletion.");
+        Console.Error.Write($"Delete secret '{name}'? [y/N] ");
         var answer = Console.ReadLine();
         return string.Equals(answer, "t", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(answer, "tak", StringComparison.OrdinalIgnoreCase) ||
@@ -205,7 +205,7 @@ internal static class Program
 
     private static int Missing(string name)
     {
-        Console.Error.WriteLine($"Nie znaleziono sekretu: {name}");
+        Console.Error.WriteLine($"Secret not found: {name}");
         return NotFound;
     }
 
@@ -218,7 +218,7 @@ internal static class Program
     private static int UsageError(string message)
     {
         Console.Error.WriteLine(message);
-        Console.Error.WriteLine("Uruchom CodexVault.Cli.exe help, aby zobaczyć dostępne polecenia.");
+        Console.Error.WriteLine("Run CodexVault.Cli.exe help to see the available commands.");
         return InvalidUsage;
     }
 
@@ -228,22 +228,22 @@ internal static class Program
     {
         Console.Out.WriteLine($@"Codex Vault CLI {CurrentVersion}
 
-Operacje bez uruchamiania okna aplikacji:
-  list [--filter TEKST]         Lista nazw sekretów (bez wartości)
-  add NAZWA [--stdin]          Dodanie sekretu
-  update NAZWA [--stdin]       Zmiana wartości istniejącego sekretu
-  get NAZWA                    Wypisanie wartości sekretu
-  exists NAZWA                 Sprawdzenie, czy sekret istnieje
-  rename STARA NOWA            Zmiana nazwy sekretu
-  delete NAZWA [--yes]         Usunięcie sekretu
-  version                      Wersja programu
+Operations without opening the graphical application:
+  list [--filter TEXT]          List secret names (never values)
+  add NAME [--stdin]           Add a secret
+  update NAME [--stdin]        Replace an existing secret value
+  get NAME                     Write the secret value
+  exists NAME                  Check whether a secret exists
+  rename OLD_NAME NEW_NAME     Rename a secret
+  delete NAME [--yes]          Delete a secret
+  version                      Display the program version
 
-Bez opcji --stdin program prosi o sekret w ukrytym trybie. Opcja --stdin jest
-przeznaczona dla aplikacji i automatyzacji. Nie przekazuj sekretu w argumentach
-polecenia. Polecenie get wypisuje jawną wartość na standardowe wyjście.
+Without --stdin, the program asks for the value at a hidden prompt. Use --stdin
+for applications and automation. Never pass a secret in command-line arguments.
+The get command writes the plaintext value to standard output.
 
-Kody zakończenia: 0 = sukces, 1 = błąd operacji, 2 = błędne użycie,
-3 = nie znaleziono wpisu.");
+Exit codes: 0 = success, 1 = operation failure, 2 = invalid usage,
+3 = entry not found.");
     }
 
     private static string CurrentVersion =>

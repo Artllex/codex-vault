@@ -1,14 +1,14 @@
-# Korzystanie z sekretów Codex Vault w aplikacjach
+# Using Codex Vault secrets in applications
 
-## Najważniejsza zasada
+## The primary rule
 
-Aplikacja, która potrzebuje sekretu, powinna odczytać go **bezpośrednio z Windows Credential Manager** pod dokładną nazwą `Codex.Shared/...`. Nie należy po drodze kopiować wartości do `.env`, `appsettings.json`, repozytorium, logu, argumentu procesu ani skryptu uruchomieniowego.
+An application should read its secret **directly from Windows Credential Manager** using the exact target name. Do not copy the value into `.env`, `appsettings.json`, source control, logs, process arguments, or startup scripts.
 
-Poświadczenia są przypisane do konta Windows. Aplikację docelową należy uruchamiać jako ten sam użytkownik, który zapisał wpis w Codex Vault. Po przeniesieniu programu na inny komputer wpisy trzeba utworzyć ponownie — plik EXE celowo ich nie eksportuje.
+Credentials belong to a Windows user account. Run the consuming application as the same user who created the entry in Codex Vault. Moving the executable to another computer does not move credentials; recreate the required entries on that machine.
 
 ## C# / .NET
 
-Projekt .NET może odwołać się do `WindowsSecretManager.Core` i użyć istniejącego adaptera:
+A .NET project can reference `WindowsSecretManager.Core` and use the existing adapter:
 
 ```csharp
 using System.Runtime.InteropServices;
@@ -20,10 +20,10 @@ using var secret = new WindowsCredentialStore()
 var pointer = Marshal.SecureStringToGlobalAllocUnicode(secret);
 try
 {
-    // Utwórz zwykły string dopiero tuż przed przekazaniem go do biblioteki,
-    // która nie obsługuje SecureString. Nie loguj wartości.
+    // Create a regular string only immediately before passing the value to a
+    // library that cannot accept SecureString. Never log this value.
     var apiKey = Marshal.PtrToStringUni(pointer)
-        ?? throw new InvalidOperationException("Sekret jest pusty.");
+        ?? throw new InvalidOperationException("The secret is empty.");
 
     await UseApiKeyAsync(apiKey);
 }
@@ -33,7 +33,7 @@ finally
 }
 ```
 
-Referencja projektu w tym repozytorium:
+Project reference inside this repository:
 
 ```xml
 <ItemGroup>
@@ -41,49 +41,47 @@ Referencja projektu w tym repozytorium:
 </ItemGroup>
 ```
 
-`SecureString` ogranicza czas obecności jawnej wartości w zarządzanej pamięci, ale biblioteki HTTP zwykle ostatecznie wymagają zwykłego napisu. Należy utrzymywać go w możliwie małym zakresie i nigdy nie dołączać do wyjątków lub logów.
+`SecureString` limits the lifetime of plaintext in managed memory, although HTTP libraries normally require a regular string eventually. Keep that string in the smallest possible scope and never include it in exceptions or logs.
 
-## PowerShell
+## PowerShell and the CLI
 
-Do prostych lokalnych automatyzacji można użyć programu `CodexVault.Cli.exe`; komplet poleceń i ostrzeżenia opisuje [`CLI.md`](CLI.md). Najbezpieczniej jest jednak, aby właściwa aplikacja odczytywała sekret sama. Jeśli integracja musi być napisana bez CLI, należy wywołać `CredReadW` przez `Add-Type` wewnątrz procesu i natychmiast wyzerować zwrócony bufor.
+For simple local automation, use `CodexVault.Cli.exe`; the complete command reference and safety guidance are in **[CLI.md](CLI.md)**. A production application should preferably call Windows Credential API directly rather than receive plaintext from another process.
 
-Nie należy robić tego w taki sposób:
+Do not pass a retrieved value as a process argument:
 
 ```powershell
-# NIE: wartość trafia do argumentów procesu i może być widoczna dla innych narzędzi.
+# DO NOT do this: the value can become visible in process inspection and logs.
 some-tool.exe --api-key $secret
 ```
 
-Jeśli narzędzie przyjmuje sekret wyłącznie przez zmienną środowiskową, ustaw ją tylko w bieżącym procesie, uruchom narzędzie i usuń w bloku `finally`. Nadal jest to rozwiązanie słabsze niż bezpośredni odczyt Credential Managera przez aplikację potomną.
+If a third-party tool accepts a secret only through an environment variable, set it only for the current process, start the tool, and remove the variable in a `finally` block. This is still weaker than direct Credential Manager access by the consuming application.
 
-## Nazwy używane w projektach
+## Naming scopes
 
-Codex Vault obsługuje trzy zakresy:
+Codex Vault supports three scopes:
 
-- `Codex.Shared/*` — narzędzia i projekty Codex;
-- `SharedSecrets/*` — sekret świadomie współdzielony przez niezależne aplikacje;
-- `Producent.Aplikacja/*` — sekret należący do jednej konkretnej aplikacji.
+- `Codex.Shared/*` — tools and projects used with Codex;
+- `SharedSecrets/*` — values intentionally shared by multiple independent applications;
+- `Vendor.Application/*` — values owned by one specific application.
 
-Prefiks porządkuje wpisy, ale sam w sobie nie jest granicą uprawnień. Proces działający jako ten sam użytkownik Windows i znający nazwę wpisu może próbować go odczytać. Dla niezależnej aplikacji preferowany jest osobny wpis `Producent.Aplikacja/*`; zakres współdzielony należy wybierać tylko świadomie.
+A prefix is an organizational convention, not an access-control boundary. A process running as the same Windows user and knowing the target name can attempt to read it. Prefer a dedicated `Vendor.Application/*` entry for an independent application and choose a shared scope only deliberately.
 
-Zmiana nazwy w Codex Vault przenosi wartość do nowego wpisu i usuwa stary. Wszystkie aplikacje korzystające z dotychczasowej nazwy muszą zostać zaktualizowane; Credential Manager nie zapewnia aliasów ani przekierowań.
+Renaming in Codex Vault creates the new entry and removes the old one while preserving the value. Every consumer of the former name must be updated; Windows Credential Manager does not provide aliases or redirects.
 
-| Zastosowanie | Nazwa docelowa |
+| Purpose | Target name |
 |---|---|
-| Hasło IMAP Onet | `Codex.Shared/Onet/ImapPassword` |
-| Gemini API | `Codex.Shared/AI/GeminiApiKey` |
-| OpenAI API | `Codex.Shared/AI/OpenAIApiKey` |
+| Onet IMAP password | `Codex.Shared/Onet/ImapPassword` |
+| Gemini API key | `Codex.Shared/AI/GeminiApiKey` |
+| OpenAI API key | `Codex.Shared/AI/OpenAIApiKey` |
 
-Można tworzyć dowolne inne wpisy pod prefiksem `Codex.Shared/`, np. `Codex.Shared/MyProject/DatabasePassword`.
+## Missing-secret behavior
 
-## Obsługa braku sekretu
+Fail the requested operation with a message that includes the credential name only, never its value. Do not silently fall back to a text file or persist a local cache.
 
-Aplikacja powinna przerwać operację z komunikatem zawierającym wyłącznie nazwę wpisu, nigdy jego wartość. Nie powinna automatycznie wracać do pliku tekstowego ani zapisywać sekretu w pamięci podręcznej.
+## Distribution
 
-## Dystrybucja
+- `framework-dependent` builds are smaller but require a compatible .NET Desktop Runtime;
+- `self-contained` builds include the runtime and need no prior .NET installation;
+- neither format transfers credentials to another computer.
 
-- `framework-dependent`: mały plik, ale wymaga .NET Desktop Runtime w odpowiedniej wersji;
-- `self-contained`: większy pakiet zawierający środowisko .NET, niewymagający jego wcześniejszej instalacji;
-- oba warianty nadal wymagają Windows 10/11 x64 i nie przenoszą zapisanych poświadczeń.
-
-Codex Vault nie wymaga uprawnień administratora. System Windows udostępnia wpisy w kontekście konta użytkownika.
+Codex Vault runs without administrator elevation. Windows exposes credentials in the current user's security context.

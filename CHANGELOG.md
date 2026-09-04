@@ -1,15 +1,15 @@
-# Historia zmian
+# Changelog
 
 ## 1.2.0 — 2026-09-04
 
-- dodano `CodexVault.Cli.exe` do obsługi sekretów bez otwierania GUI;
-- dodano polecenia `list`, `add`, `update`, `get`, `exists`, `rename` i `delete`;
-- dodano bezpieczne, ukryte wprowadzanie wartości i obsługę standardowego wejścia;
-- komunikat po dodaniu sekretu automatycznie wraca do standardowego statusu;
-- do dystrybucji dołączono instrukcję dla użytkowników, aplikacji i agentów LLM.
+- Added `CodexVault.Cli.exe` for managing secrets without opening the GUI.
+- Added the `list`, `add`, `update`, `get`, `exists`, `rename`, and `delete` commands.
+- Added hidden interactive input and standard-input support for secret values.
+- Made the confirmation shown after adding a secret automatically return to the standard status.
+- Added guidance for users, applications, automation, and local LLM agents.
 
 ## 1.1.7
 
-- dopracowano przezroczystość i skalowanie wybranego logo;
-- przeniesiono odsyłacz „O programie” do stopki;
-- dodano filtrowanie listy po nazwie.
+- Refined the transparency and scaling of the selected logo.
+- Moved the About link to the footer.
+- Added name filtering to the credential list.
