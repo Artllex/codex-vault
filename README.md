@@ -1,91 +1,127 @@
-# Codex Vault for Windows
+<p align="center">
+  <img src="src/WindowsSecretManager.App/Assets/codex-vault-selected-tight.png" width="180" alt="Codex Vault logo">
+</p>
 
-Mała aplikacja WPF w dopracowanym ciemnym motywie do zarządzania wpisami `Codex.Shared/*` w natywnym **Windows Credential Manager**. Lista nigdy nie pobiera ani nie pokazuje wartości. Sekret można odczytać dopiero przez świadome kliknięcie **Pokaż** lub **Kopiuj**.
+<h1 align="center">Codex Vault</h1>
 
-## Funkcje
+<p align="center">
+  <strong>Twoje sekrety należą do Windows — nie do pliku tekstowego.</strong><br>
+  Nowoczesny sejf na klucze API i hasła, z ciemnym interfejsem, Windows Hello oraz CLI przyjaznym automatyzacji.
+</p>
 
-- lista nazw wszystkich poświadczeń `Codex.Shared/*`;
-- automatyczne przewijanie długiej listy oraz filtrowanie wpisów po fragmencie nazwy;
-- interfejs w języku polskim i angielskim, przełączany z nagłówka aplikacji;
-- trzy przestrzenie nazw wybierane podczas dodawania: `Codex.Shared/*`, `SharedSecrets/*` oraz `Producent.Aplikacja/*`;
-- jednorazowe potwierdzenie Windows Hello przy każdym uruchomieniu programu (z jawnym ostrzeżeniem awaryjnym, gdy Hello nie jest dostępne);
-- karta „O programie” z opisem odpowiedzialności programu i systemu;
-- dodawanie dowolnej nazwy w tej przestrzeni (prefiks jest dopisywany automatycznie);
-- rotacja istniejącego sekretu;
-- zmiana nazwy sekretu bez zmiany jego wartości, z kontrolą kolizji i wycofaniem operacji przy błędzie;
-- usuwanie z potwierdzeniem;
-- podgląd na żądanie;
-- kopiowanie na żądanie i automatyczne czyszczenie schowka po 30 sekundach, o ile użytkownik nie zastąpił jego zawartości;
-- komunikaty o wykonanych operacjach automatycznie ustępują miejsca liczbie widocznych wpisów;
-- osobny program `CodexVault.Cli.exe` do obsługi sejfu bez uruchamiania okna;
-- gotowe podpowiedzi nazw:
-  - `Codex.Shared/Onet/ImapPassword`
-  - `Codex.Shared/AI/GeminiApiKey`
-  - `Codex.Shared/AI/OpenAIApiKey`
+<p align="center">
+  <a href="https://github.com/Artllex/codex-vault/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Artllex/codex-vault?style=flat-square"></a>
+  <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows">
+  <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-7c6cf2?style=flat-square">
+</p>
 
-## Wymagania i uruchomienie
+## Po co kolejny sejf?
 
-Instalator `CodexVault-Setup-1.2.0-win-x64.exe` działa w profilu bieżącego użytkownika, nie wymaga uprawnień administratora i dodaje skrót do menu Start. Opcjonalny pakiet ZIP jest samodzielny: należy rozpakować cały folder i uruchomić `CodexVault.exe`, nie przenosząc samych plików EXE bez plików znajdujących się obok nich. Odinstalowanie aplikacji celowo pozostawia sekrety w Windows Credential Manager.
+Klucze API często kończą w `.env`, skryptach, historii terminala albo repozytorium. Codex Vault daje im prosty, wspólny adres, ale przechowuje wartości w natywnym **Windows Credential Manager**. Aplikacja porządkuje wpisy i ułatwia pracę; ochronę danych, trwałość i powiązanie z kontem użytkownika zapewnia Windows.
+
+- wartości nie są zapisywane w konfiguracji Codex Vault ani zwykłym pliku;
+- lista pokazuje wyłącznie nazwy sekretów;
+- Windows Hello chroni otwarcie aplikacji okienkowej;
+- polski i angielski interfejs, ciemny motyw oraz wyszukiwanie;
+- GUI do codziennej pracy i osobne CLI dla skryptów, aplikacji oraz lokalnych agentów LLM;
+- samodzielny instalator i pakiet portable dla Windows x64;
+- brak telemetrii i licencja MIT.
+
+## Pobieranie
+
+Gotowe pliki znajdują się w sekcji **[Releases](https://github.com/Artllex/codex-vault/releases/latest)**:
+
+- `CodexVault-Setup-1.2.0-win-x64.exe` — instalator i automatyczna aktualizacja starszej wersji;
+- `CodexVault-1.2.0-win-x64.zip` — wersja portable, niewymagająca instalacji.
+
+Obie wersje są samodzielne i nie wymagają wcześniejszej instalacji .NET. Program nie jest jeszcze podpisany komercyjnym certyfikatem, więc SmartScreen lub antywirus może wyświetlić ostrzeżenie reputacyjne. Sumy SHA-256 są publikowane w opisie wydania.
+
+## Pierwszy sekret — wersja dla człowieka
+
+1. Uruchom `CodexVault.exe` i potwierdź swoją tożsamość przez Windows Hello.
+2. Wybierz **Dodaj sekret**.
+3. Wskaż środowisko, nazwij wpis i wklej wartość.
+4. W aplikacji docelowej odczytaj wpis pod dokładnie tą samą nazwą.
+
+Przykładowe nazwy:
+
+| Przeznaczenie | Wzorzec |
+|---|---|
+| projekty i narzędzia Codex | `Codex.Shared/AI/OpenAIApiKey` |
+| świadomie współdzielony sekret | `SharedSecrets/Mail/Password` |
+| jedna konkretna aplikacja | `Producent.Aplikacja/DatabasePassword` |
+
+Prefiksy porządkują wpisy, lecz nie stanowią osobnych granic uprawnień. Dostęp jest związany z kontem użytkownika Windows.
+
+## CLI — dla człowieka, skryptu i LLM
+
+`CodexVault.Cli.exe` działa bez uruchamiania okna aplikacji:
 
 ```powershell
-dotnet build .\WindowsSecretManager.sln
-dotnet run --project .\src\WindowsSecretManager.App\WindowsSecretManager.App.csproj
-```
-
-## Wiersz poleceń
-
-`CodexVault.Cli.exe` działa bez otwierania panelu aplikacji. Nazwę bez prefiksu, np. `AI/OpenAIApiKey`, program automatycznie zapisuje jako `Codex.Shared/AI/OpenAIApiKey`.
-
-```powershell
+# Nazwy bez ujawniania wartości
 .\CodexVault.Cli.exe list
 .\CodexVault.Cli.exe list --filter OpenAI
+.\CodexVault.Cli.exe exists Codex.Shared/AI/OpenAIApiKey
+
+# Wartość wpisujesz w ukrytym trybie
 .\CodexVault.Cli.exe add Codex.Shared/AI/OpenAIApiKey
 .\CodexVault.Cli.exe update Codex.Shared/AI/OpenAIApiKey
+
+# Pozostałe operacje
 .\CodexVault.Cli.exe get Codex.Shared/AI/OpenAIApiKey
-.\CodexVault.Cli.exe exists Codex.Shared/AI/OpenAIApiKey
-.\CodexVault.Cli.exe rename Codex.Shared/AI/OldKey Codex.Shared/AI/NewKey
-.\CodexVault.Cli.exe delete Codex.Shared/AI/OpenAIApiKey
+.\CodexVault.Cli.exe rename STARA_NAZWA NOWA_NAZWA
+.\CodexVault.Cli.exe delete NAZWA
+.\CodexVault.Cli.exe help
 ```
 
-Przy `add` i `update` wartość jest domyślnie wpisywana w ukrytym trybie. Automatyzacja może przesłać jeden wiersz przez standardowe wejście i dodać `--stdin`; CLI celowo nie ma opcji `--value`, ponieważ argumenty poleceń mogą trafić do historii terminala i listy procesów. Polecenie `get` zwraca wyłącznie jawną wartość na standardowe wyjście, dlatego nie należy zapisywać jego wyniku w logu ani historii. Pełna instrukcja znajduje się w [`docs/CLI.md`](docs/CLI.md).
+Kontrakt dla automatyzacji i lokalnego agenta LLM:
 
-Testy są samodzielnym, bezpakietowym programem konsolowym i nie korzystają z prawdziwego Credential Managera:
+1. **Nigdy nie przekazuj sekretu jako argumentu polecenia.** CLI celowo nie obsługuje `--value`.
+2. Do `add` i `update` przekaż jeden wiersz przez standardowe wejście oraz dodaj `--stdin`.
+3. `list` wypisuje po jednej nazwie w wierszu. Błędy trafiają na standardowe wyjście błędów.
+4. `get` wypisuje wyłącznie jawną wartość. Używaj go tylko wtedy, gdy sekret jest rzeczywiście potrzebny, i nie zapisuj wyniku w logach ani rozmowie.
+5. Kody zakończenia: `0` sukces, `1` błąd operacji, `2` błędna składnia, `3` brak wpisu.
 
 ```powershell
-dotnet run --project .\tests\WindowsSecretManager.Tests\WindowsSecretManager.Tests.csproj
+# Przykład mechanizmu stdin. W produkcji wartość powinna pochodzić bezpośrednio
+# z pamięci procesu, a nie z pliku.
+Get-Content .\wartosc-tymczasowa.txt |
+  .\CodexVault.Cli.exe add SharedSecrets/Example/Key --stdin
 ```
 
-Publikacja jako pojedynczy plik dla Windows x64 (framework-dependent):
+CLI nie uruchamia Windows Hello, ponieważ jest przeznaczone do pracy nieinteraktywnej. Działa z uprawnieniami bieżącego użytkownika Windows. Szczegółowa instrukcja: **[docs/CLI.md](docs/CLI.md)**.
+
+## Integracja z aplikacją
+
+Najbezpieczniej, gdy aplikacja odczytuje sekret bezpośrednio z Windows Credential Managera — bez kopiowania do `.env`, argumentów procesu czy dodatkowego pliku. Przykładowy kod C#, zasady doboru nazw i obsługa braku wpisu znajdują się w **[docs/INTEGRATION.md](docs/INTEGRATION.md)**.
+
+## Model odpowiedzialności
+
+**Codex Vault odpowiada za:** interfejs, walidację nazw, świadome ujawnianie wartości, obsługę CLI i bezpieczne wywołanie systemowego API poświadczeń.
+
+**Windows odpowiada za:** zapis zaszyfrowanej wartości, trwałość, powiązanie jej z kontem użytkownika oraz dostęp przez Credential API.
+
+Program nie chroni przed administratorem, debuggerem ani złośliwym procesem działającym jako ten sam użytkownik. Schowek jest czyszczony po 30 sekundach, o ile użytkownik nie zastąpił jego zawartości; historia i synchronizacja schowka pozostają funkcjami Windows.
+
+## Budowanie
+
+Wymagany jest .NET 6 SDK na Windows:
 
 ```powershell
-dotnet publish .\src\WindowsSecretManager.App\WindowsSecretManager.App.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o .\publish
+dotnet build .\WindowsSecretManager.sln -c Release
+dotnet run --project .\tests\WindowsSecretManager.Tests\WindowsSecretManager.Tests.csproj -c Release
 ```
 
-## Model bezpieczeństwa
+Struktura projektu:
 
-- Wartości trafiają wyłącznie do Credential Managera przez Win32 Credential API (`CredWrite`, `CredRead`, `CredDelete`, `CredEnumerate`). Trwałość `LocalMachine` oznacza dostęp dla bieżącego użytkownika także po restarcie; system Windows chroni dane w kontekście konta.
-- Aplikacja nie ma telemetrii ani logowania, nie uruchamia procesów z sekretami i nie zapisuje konfiguracji zawierającej wartości.
-- Okna wprowadzania używają `PasswordBox`, a warstwa magazynu przyjmuje `SecureString`. Niezarządzane bufory są zerowane natychmiast po użyciu.
-- Podgląd i schowek wymagają jawnej akcji. Podgląd tworzy krótkotrwały zwykły napis, ponieważ WPF `MessageBox` i schowek systemowy przyjmują tekst; środowisko .NET nie gwarantuje natychmiastowego wyzerowania takiego napisu. Osoba lub złośliwy proces działający w tej samej sesji może zobaczyć ekran albo odczytać schowek.
-- Windows Hello jest wywoływane jeden raz przy uruchomieniu programu. Po udanym otwarciu sejfu operacje w tej sesji nie powodują kolejnych monitów. Gdy Hello nie jest skonfigurowane lub zostało wyłączone przez zasady, program informuje o tym i domyślnie odmawia kontynuacji; użytkownik może jawnie wybrać kontynuację bez dodatkowej weryfikacji.
-- CLI nie uruchamia panelu ani weryfikacji Windows Hello. Jest przeznaczone do automatyzacji działającej jako bieżący użytkownik Windows; każdy proces tego użytkownika może je wywołać, a dostęp do poświadczeń ostatecznie egzekwuje Windows Credential Manager.
-- Schowek jest czyszczony po 30 sekundach tylko wtedy, gdy nadal zawiera wpis ustawiony przez aplikację. Historia schowka i synchronizacja między urządzeniami są funkcjami Windows — dla szczególnie wrażliwych wartości należy je wyłączyć w ustawieniach systemu.
-- Program działa bez podniesionych uprawnień (`asInvoker`). Nie zabezpiecza przed administratorem, debuggerem ani złośliwym kodem działającym jako ten sam użytkownik.
-- Interfejs deklaruje obsługę DPI `PerMonitorV2`, dzięki czemu zachowuje poprawny układ przy skalowaniu ekranu Windows.
+- `src/WindowsSecretManager.Core` — logika, walidacja i adapter Win32;
+- `src/WindowsSecretManager.App` — aplikacja WPF;
+- `src/WindowsSecretManager.Cli` — interfejs wiersza poleceń;
+- `tests/WindowsSecretManager.Tests` — testy bez dostępu do prawdziwych poświadczeń;
+- `installer` — definicja instalatora Inno Setup.
 
-## Użycie z projektów Codex
+## Autor i licencja
 
-Projekt powinien pobierać poświadczenie bezpośrednio przez Windows Credential API, podając dokładną nazwę docelową. Nie należy eksportować sekretu do repozytorium, pliku `.env`, logu ani argumentu procesu. Uprawnienia do sekretu wynikają z konta Windows uruchamiającego proces.
+Arkadiusz Pajda — `45765462+Artllex@users.noreply.github.com`
 
-Szczegółowy przewodnik integracji, przykładowy kod C# i zasady dystrybucji znajdują się w [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
-
-## Struktura
-
-- `src/WindowsSecretManager.Core` — walidacja, logika aplikacji i adapter Win32;
-- `src/WindowsSecretManager.App` — interfejs WPF;
-- `src/WindowsSecretManager.Cli` — obsługa wiersza poleceń bez interfejsu okienkowego;
-- `tests/WindowsSecretManager.Tests` — testy logiki na magazynie pamięciowym.
-
-## Licencja
-
-MIT License. Copyright © 2026 Arkadiusz Pajda (`45765462+Artllex@users.noreply.github.com`). Pełny tekst znajduje się w pliku `LICENSE`.
+Projekt jest udostępniany na licencji **MIT**. Pełny tekst znajduje się w pliku [LICENSE](LICENSE).
