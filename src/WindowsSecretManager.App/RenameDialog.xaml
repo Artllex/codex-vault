@@ -1,0 +1,8 @@
+<Window x:Class="WindowsSecretManager.App.RenameDialog" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Codex Vault" Icon="Assets/codex-vault-selected.ico" Width="680" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Background="#0B0D14" Foreground="#F4F6FC">
+ <Grid Margin="26,24"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <StackPanel Margin="0,0,0,22"><TextBlock x:Name="HeadingText" FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="DescriptionText" Margin="0,6,0,0" Foreground="#A9B0C2"/></StackPanel>
+  <StackPanel Grid.Row="1"><TextBlock x:Name="NameLabel" FontWeight="SemiBold"/><TextBox x:Name="NameBox" Margin="0,7,0,8" Height="38"/><TextBlock x:Name="ExamplesText" Foreground="#8BE4C2" FontFamily="Cascadia Mono, Consolas" FontSize="11" TextWrapping="Wrap"/></StackPanel>
+  <Border Grid.Row="2" Background="#2A2115" BorderBrush="#594522" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,20,0,20"><TextBlock x:Name="WarningText" Foreground="#E5C98B" TextWrapping="Wrap"/></Border>
+  <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="CancelButton" MinWidth="92" IsCancel="True"/><Button x:Name="SaveButton" MinWidth="126" Style="{StaticResource PrimaryButton}" Margin="0" IsDefault="True" Click="Save_Click"/></StackPanel>
+ </Grid>
+</Window>
