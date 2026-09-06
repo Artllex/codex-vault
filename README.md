@@ -21,8 +21,9 @@ API keys often end up in `.env` files, scripts, terminal history, or source cont
 
 - Values are never saved in Codex Vault configuration or ordinary files.
 - The list displays names only, never secret values.
-- Windows Hello protects access to the graphical application.
+- Windows Hello protects the first reveal, copy, or rotate operation in each application session.
 - The polished dark UI is available in English and Polish and includes search.
+- Recovery-code sets can be entered manually or imported from a text file.
 - The GUI serves everyday use; the separate CLI supports scripts, applications, and local LLM agents.
 - Both an installer and a self-contained portable package are available for Windows x64.
 - No telemetry. Open source under the MIT License.
@@ -31,23 +32,25 @@ API keys often end up in `.env` files, scripts, terminal history, or source cont
 
 Ready-to-use builds are available under **[Releases](https://github.com/Artllex/codex-vault/releases/latest)**:
 
-- `CodexVault-Setup-1.2.0-win-x64.exe` — installer and in-place upgrade for an older version;
-- `CodexVault-1.2.0-win-x64.zip` — portable version that requires no installation.
+- `CodexVault-Setup-1.3.0-win-x64.exe` — installer and in-place upgrade for an older version;
+- `CodexVault-1.3.0-win-x64.zip` — portable version that requires no installation.
 
 Both packages are self-contained and do not require a preinstalled .NET runtime. The application is not yet signed with a commercial code-signing certificate, so SmartScreen or antivirus software may show a reputation warning. SHA-256 checksums are published with every release.
 
 ## Your first secret — for humans
 
-1. Start `CodexVault.exe` and confirm your identity with Windows Hello.
+1. Start `CodexVault.exe`. Windows Hello appears only when you first reveal, copy, or rotate a protected value.
 2. Select **Add secret**.
 3. Choose a scope, enter a name, and paste the value.
 4. In the consuming application, read the credential using exactly the same name.
+
+For recovery codes, open the dedicated **Recovery codes** view, choose a descriptive set name, enter the codes manually or import the provider's text file, and save. Sets are hidden from the CLI. The viewer supports selecting and copying one code at a time. Importing does not delete or encrypt the source file, so secure or remove it after verifying the saved entry.
 
 Example names:
 
 | Purpose | Pattern |
 |---|---|
-| Codex projects and tools | `Codex.Shared/AI/OpenAIApiKey` |
+| Projects intended to remain within Codex workflows | `Codex.Shared/AI/OpenAIApiKey` |
 | A secret intentionally shared across applications | `SharedSecrets/Mail/Password` |
 | A secret owned by one application | `Vendor.Application/DatabasePassword` |
 
@@ -77,7 +80,7 @@ Prefixes organize entries, but they are not separate permission boundaries. Acce
 Contract for automation and local LLM agents:
 
 1. **Never pass a secret as a command-line argument.** The CLI intentionally has no `--value` option.
-2. For non-interactive `add` and `update`, send exactly one line through standard input and add `--stdin`.
+2. For non-interactive `add` and `update`, send the value through standard input with `--stdin`, or import a text file with `--file PATH`. Multi-line values are supported.
 3. `list` writes one name per line. Errors go to standard error.
 4. `get` writes the plaintext value only. Use it solely when the task genuinely requires the secret, and never copy its output into logs or a conversation.
 5. Exit codes: `0` success, `1` operation failure, `2` invalid usage, `3` entry not found.
@@ -122,6 +125,6 @@ Project layout:
 
 ## Author and license
 
-Arkadiusz Pajda — `45765462+Artllex@users.noreply.github.com`
+Arkadiusz Pajda — support and contact through [GitHub Issues](https://github.com/Artllex/codex-vault/issues)
 
 Released under the **MIT License**. See [LICENSE](LICENSE) for the full text.

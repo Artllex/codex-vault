@@ -7,22 +7,18 @@ namespace WindowsSecretManager.App;
 public partial class SecretDialog : Window
 {
     private readonly UiLanguage _language;
-    private readonly string? _existingName;
     public string SecretName => BuildName();
     public SecureString SecretValue => ValueBox.SecurePassword.Copy();
 
     public SecretDialog(string? existingName = null, UiLanguage language = UiLanguage.Polish)
     {
         _language = language;
-        _existingName = existingName;
         InitializeComponent();
         DarkTitleBar.Enable(this);
         ApplyLanguage(existingName is not null);
         if (existingName is not null)
         {
-            ScopePanel.IsEnabled = OwnerPanel.IsEnabled = NameBox.IsEnabled = false;
-            NameBox.Text = existingName;
-            FullNameText.Text = existingName;
+            SetName(existingName);
         }
         else NameBox.Text = "Onet/ImapPassword";
         Loaded += (_, _) =>
@@ -34,7 +30,6 @@ public partial class SecretDialog : Window
 
     private string BuildName()
     {
-        if (_existingName is not null) return _existingName;
         var suffix = NameBox.Text.Trim().TrimStart('/', '\\');
         if (SharedScope.IsChecked == true) return SecretNames.SharedPrefix + suffix;
         if (ApplicationScope.IsChecked == true) return OwnerBox.Text.Trim().TrimEnd('/') + "/" + suffix;
@@ -55,11 +50,34 @@ public partial class SecretDialog : Window
 
     private void UpdatePreview() => FullNameText.Text = BuildName();
 
+    private void SetName(string name)
+    {
+        if (name.StartsWith(SecretNames.Prefix, StringComparison.Ordinal))
+        {
+            CodexScope.IsChecked = true;
+            NameBox.Text = name[SecretNames.Prefix.Length..];
+        }
+        else if (name.StartsWith(SecretNames.SharedPrefix, StringComparison.Ordinal))
+        {
+            SharedScope.IsChecked = true;
+            NameBox.Text = name[SecretNames.SharedPrefix.Length..];
+        }
+        else
+        {
+            ApplicationScope.IsChecked = true;
+            var separator = name.IndexOf('/');
+            OwnerBox.Text = separator > 0 ? name[..separator] : "Vendor.Application";
+            NameBox.Text = separator > 0 ? name[(separator + 1)..] : name;
+        }
+        OwnerPanel.Visibility = ApplicationScope.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        UpdatePreview();
+    }
+
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         try { SecretNames.Validate(SecretName); }
-        catch (ArgumentException) { MessageBox.Show(this, T.Get(_language, "Uzupełnij poprawną nazwę w wybranym zakresie.", "Enter a valid name in the selected scope."), T.Get(_language, "Nieprawidłowa nazwa", "Invalid name"), MessageBoxButton.OK, MessageBoxImage.Warning); return; }
-        if (ValueBox.SecurePassword.Length == 0) { MessageBox.Show(this, T.Get(_language, "Sekret nie może być pusty.", "The secret cannot be empty."), T.Get(_language, "Brak wartości", "Missing value"), MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+        catch (ArgumentException) { StyledDialog.Show(this, T.Get(_language, "Nieprawidłowa nazwa", "Invalid name"), T.Get(_language, "Uzupełnij poprawną nazwę w wybranym zakresie.", "Enter a valid name in the selected scope."), _language); return; }
+        if (ValueBox.SecurePassword.Length == 0) { StyledDialog.Show(this, T.Get(_language, "Brak wartości", "Missing value"), T.Get(_language, "Sekret nie może być pusty.", "The secret cannot be empty."), _language); return; }
         DialogResult = true;
     }
 
@@ -69,7 +87,7 @@ public partial class SecretDialog : Window
         HeadingText.Text = T.Get(_language, rotating ? "Zmień bezpieczny sekret" : "Zapisz bezpieczny sekret", rotating ? "Change a secure secret" : "Save a secure secret");
         DescriptionText.Text = T.Get(_language, "Wartość trafi bezpośrednio do Windows Credential Manager.", "The value goes directly to Windows Credential Manager.");
         ScopeLabel.Text = T.Get(_language, "Środowisko sekretu", "Secret environment");
-        CodexScope.Content = "Codex.Shared/*";
+        CodexScope.Content = T.Get(_language, "Projekty w Codex", "Projects in Codex") + " — Codex.Shared/*";
         SharedScope.Content = T.Get(_language, "Współdzielony", "Shared") + " — SharedSecrets/*";
         ApplicationScope.Content = T.Get(_language, "Aplikacja", "Application") + " — Vendor.Application/*";
         OwnerLabel.Text = T.Get(_language, "Producent i aplikacja", "Vendor and application");

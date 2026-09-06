@@ -9,6 +9,7 @@ var tests = new (string Name, Action Run)[]
     ("Invalid empty suffix rejected", () => Throws<ArgumentException>(() => SecretNames.Validate("Codex.Shared/"))),
     ("Shared scope accepted", () => SecretNames.Validate("SharedSecrets/AI/Key")),
     ("Application scope accepted", () => SecretNames.Validate("Acme.Mail/ImapPassword")),
+    ("Recovery-code scope accepted", () => SecretNames.Validate("RecoveryCodes/GitHub")),
     ("List filters and sorts", TestList),
     ("Save refuses duplicate", TestDuplicate),
     ("Rotate replaces secret", TestRotate),
@@ -16,6 +17,8 @@ var tests = new (string Name, Action Run)[]
     ("Empty secret rejected", TestEmpty)
     ,("Rename moves secret", TestRename)
     ,("Rename refuses duplicate target", TestRenameDuplicate)
+    ,("Update changes name and value", TestUpdate)
+    ,("Update permits case-only rename", TestCaseOnlyUpdate)
 };
 
 var failed = 0;
@@ -40,6 +43,8 @@ void TestDelete() { var store = new MemoryStore(); var service = new SecretServi
 void TestEmpty() { using var empty = new SecureString(); Throws<ArgumentException>(() => new SecretService(new MemoryStore()).Save("Test", empty, false)); }
 void TestRename() { var store = new MemoryStore(); var service = new SecretService(store); using var v = Secure("x"); service.Save("Old", v, false); var renamed = service.Rename("Codex.Shared/Old", "SharedSecrets/New"); Equal("SharedSecrets/New", renamed); if (store.Exists("Codex.Shared/Old") || !store.Exists(renamed)) throw new Exception("Rename did not move the entry"); }
 void TestRenameDuplicate() { var store = new MemoryStore(); var service = new SecretService(store); using var v = Secure("x"); service.Save("One", v, false); service.Save("Two", v, false); Throws<InvalidOperationException>(() => service.Rename("Codex.Shared/One", "Codex.Shared/Two")); }
+void TestUpdate() { var store = new MemoryStore(); var service = new SecretService(store); using var a = Secure("a"); using var b = Secure("b"); service.Save("Old", a, false); var updated = service.Update("Codex.Shared/Old", "SharedSecrets/New", b); Equal("SharedSecrets/New", updated); if (store.Exists("Codex.Shared/Old")) throw new Exception("Old entry remains"); using var read = service.Read(updated); Equal("b", Plain(read)); }
+void TestCaseOnlyUpdate() { var store = new MemoryStore(StringComparer.OrdinalIgnoreCase); var service = new SecretService(store); using var a = Secure("a"); using var b = Secure("b"); service.Save("Firefox", a, false); var updated = service.Update("Codex.Shared/Firefox", "Codex.Shared/firefox", b); Equal("Codex.Shared/firefox", updated); using var read = service.Read(updated); Equal("b", Plain(read)); }
 static SecureString Secure(string value) { var s = new SecureString(); foreach (var c in value) s.AppendChar(c); s.MakeReadOnly(); return s; }
 static string Plain(SecureString value) { var p = Marshal.SecureStringToGlobalAllocUnicode(value); try { return Marshal.PtrToStringUni(p)!; } finally { Marshal.ZeroFreeGlobalAllocUnicode(p); } }
 static void Equal<T>(T expected, T actual) where T : notnull { if (!EqualityComparer<T>.Default.Equals(expected, actual)) throw new Exception($"Expected {expected}, got {actual}"); }
@@ -48,7 +53,8 @@ static void Throws<T>(Action action) where T : Exception { try { action(); } cat
 
 sealed class MemoryStore : ISecretStore
 {
-    private readonly Dictionary<string, SecureString> _items = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, SecureString> _items;
+    public MemoryStore(IEqualityComparer<string>? comparer = null) => _items = new(comparer ?? StringComparer.Ordinal);
     public IReadOnlyList<string> ListNames() => _items.Keys.ToArray();
     public bool Exists(string name) => _items.ContainsKey(name);
     public void Save(string name, SecureString value) { if (_items.Remove(name, out var old)) old.Dispose(); _items[name] = value.Copy(); }

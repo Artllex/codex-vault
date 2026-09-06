@@ -7,9 +7,9 @@
 | Command | Behavior |
 |---|---|
 | `list [--filter TEXT]` | Writes names, one per line; never writes values |
-| `add NAME [--stdin]` | Adds a secret and refuses to overwrite an existing entry |
-| `update NAME [--stdin]` | Replaces the value of an existing secret |
-| `rotate NAME [--stdin]` | Alias for `update` |
+| `add NAME [--stdin \| --file PATH]` | Adds a secret and refuses to overwrite an existing entry |
+| `update NAME [--stdin \| --file PATH]` | Replaces the value of an existing secret |
+| `rotate NAME [--stdin \| --file PATH]` | Alias for `update` |
 | `get NAME` | Writes the plaintext value to standard output |
 | `exists NAME` | Writes `true` or `false` |
 | `rename OLD NEW` | Changes the name without changing the value |
@@ -35,7 +35,7 @@ For `add` and `update`, the CLI asks for the value using a hidden prompt. Only m
 
 ## Automation and LLM agents
 
-A controlling process can send exactly one line to the CLI through standard input:
+A controlling process can send a single-line or multi-line value through standard input:
 
 ```powershell
 Get-Content .\temporary-value.txt |
@@ -43,6 +43,8 @@ Get-Content .\temporary-value.txt |
 ```
 
 The file above demonstrates the mechanism only. For a real secret, pass the value directly from process memory and do not create a temporary file. The CLI intentionally provides no `--value` argument because command-line arguments can appear in shell history and process inspection tools.
+
+`--file` can import a multi-line value for an ordinary application secret. Recovery-code sets belong to a separate GUI-only environment: they are omitted from `list`, and direct CLI operations on `RecoveryCodes/*` are rejected.
 
 A local ChatGPT/Codex agent can run the same commands when it has permission to launch the executable. The agent should send new values through standard input. The `get` command puts the plaintext value in process output, where it may enter tool output or model context. Use it only when consciously required.
 
@@ -55,7 +57,7 @@ For production applications, direct Windows Credential Manager access is safer t
 - `list` writes one credential name per line.
 - `get` writes the value followed by a newline.
 - `exists` writes `true` and exits with `0`, or writes `false` and exits with `3`.
-- Secret input for `--stdin` is one line; the line ending is not stored.
+- Secret input for `--stdin` may contain multiple lines; trailing line endings are not stored.
 
 Exit codes:
 

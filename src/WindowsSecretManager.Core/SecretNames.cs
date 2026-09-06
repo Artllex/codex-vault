@@ -4,6 +4,7 @@ public static class SecretNames
 {
     public const string Prefix = "Codex.Shared/";
     public const string SharedPrefix = "SharedSecrets/";
+    public const string RecoveryCodesPrefix = "RecoveryCodes/";
 
     public static readonly IReadOnlyList<string> Suggested = new[]
     {
@@ -23,7 +24,11 @@ public static class SecretNames
     public static bool IsSupported(string name) =>
         (name.StartsWith(Prefix, StringComparison.Ordinal) && name.Length > Prefix.Length) ||
         (name.StartsWith(SharedPrefix, StringComparison.Ordinal) && name.Length > SharedPrefix.Length) ||
+        (name.StartsWith(RecoveryCodesPrefix, StringComparison.Ordinal) && name.Length > RecoveryCodesPrefix.Length) ||
         IsApplicationName(name);
+
+    public static bool IsRecoveryCodesName(string name) =>
+        name.StartsWith(RecoveryCodesPrefix, StringComparison.Ordinal) && name.Length > RecoveryCodesPrefix.Length;
 
     public static bool IsApplicationName(string name)
     {

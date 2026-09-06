@@ -1,0 +1,7 @@
+<Window x:Class="WindowsSecretManager.App.StyledDialog" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Codex Vault" Icon="Assets/codex-vault-selected.ico" Width="500" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Background="#0B0D14" Foreground="#F4F6FC">
+ <Grid Margin="26,24"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <StackPanel Orientation="Horizontal"><Border Width="38" Height="38" CornerRadius="10" Background="#242039" Margin="0,0,14,0"><TextBlock x:Name="SymbolText" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#9C8CFF" FontSize="19"/></Border><TextBlock x:Name="HeadingText" VerticalAlignment="Center" Foreground="#F4F6FC" FontSize="19" FontWeight="SemiBold"/></StackPanel>
+  <TextBox x:Name="MessageText" Grid.Row="1" Margin="52,16,0,24" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#C7CCDA" FontSize="14" TextWrapping="Wrap" IsReadOnly="True" IsReadOnlyCaretVisible="False"/>
+  <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="SecondaryButton" MinWidth="92" Click="Secondary_Click"/><Button x:Name="PrimaryButton" MinWidth="92" Style="{StaticResource PrimaryButton}" Margin="0" IsDefault="True" Click="Primary_Click"/></StackPanel>
+ </Grid>
+</Window>

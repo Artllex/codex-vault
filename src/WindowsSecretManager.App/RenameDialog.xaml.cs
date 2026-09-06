@@ -28,7 +28,7 @@ public partial class RenameDialog : Window
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         try { SecretNames.Validate(NewName); }
-        catch (ArgumentException) { MessageBox.Show(this, T.Get(_language, "Podaj pełną nazwę w jednym z obsługiwanych zakresów.", "Enter a full name in one of the supported scopes."), T.Get(_language, "Nieprawidłowa nazwa", "Invalid name"), MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+        catch (ArgumentException) { StyledDialog.Show(this, T.Get(_language, "Nieprawidłowa nazwa", "Invalid name"), T.Get(_language, "Podaj pełną nazwę w jednym z obsługiwanych zakresów.", "Enter a full name in one of the supported scopes."), _language); return; }
         DialogResult = true;
     }
 }

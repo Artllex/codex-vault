@@ -50,7 +50,7 @@ internal static class Program
         if (args.Length == 2 && args[0] is "--filter" or "-f") filter = args[1];
         else if (args.Length != 0) return UsageError("Usage: CodexVault.Cli.exe list [--filter TEXT]");
 
-        var names = Service.List();
+        var names = Service.List().Where(name => !SecretNames.IsRecoveryCodesName(name)).ToArray();
         if (!string.IsNullOrWhiteSpace(filter))
             names = names.Where(name => name.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToArray();
         foreach (var name in names) Console.Out.WriteLine(name);
@@ -59,8 +59,11 @@ internal static class Program
 
     private static int Save(string[] args, bool overwrite)
     {
-        if (args.Length is < 1 or > 2 || (args.Length == 2 && args[1] != "--stdin"))
-            return UsageError($"Usage: CodexVault.Cli.exe {(overwrite ? "update" : "add")} NAME [--stdin]");
+        var inputModeValid = args.Length == 1 ||
+            (args.Length == 2 && args[1] == "--stdin") ||
+            (args.Length == 3 && args[1] == "--file");
+        if (!inputModeValid)
+            return UsageError($"Usage: CodexVault.Cli.exe {(overwrite ? "update" : "add")} NAME [--stdin | --file PATH]");
 
         var requestedName = NormalizeName(args[0]);
         var exists = Contains(requestedName);
@@ -70,7 +73,12 @@ internal static class Program
             Console.Error.WriteLine($"Secret already exists: {requestedName}");
             return OperationFailed;
         }
-        using var secret = args.Length == 2 ? ReadSecretFromStandardInput() : ReadSecretInteractively();
+        using var secret = args.Length switch
+        {
+            2 => ReadSecretFromStandardInput(),
+            3 => ReadSecretFromFile(args[2]),
+            _ => ReadSecretInteractively()
+        };
         var savedName = Service.Save(requestedName, secret, overwrite);
         Console.Out.WriteLine(savedName);
         return Success;
@@ -123,6 +131,8 @@ internal static class Program
     {
         var normalized = SecretNames.Normalize(name);
         SecretNames.Validate(normalized);
+        if (SecretNames.IsRecoveryCodesName(normalized))
+            throw new InvalidOperationException("Recovery-code sets are not available through the CLI.");
         return normalized;
     }
 
@@ -166,12 +176,36 @@ internal static class Program
     private static SecureString ReadSecretFromStandardInput()
     {
         var result = new SecureString();
+        var trailingLineBreaks = 0;
         while (true)
         {
             var value = Console.In.Read();
-            if (value < 0 || value == '\n') break;
-            if (value != '\r') result.AppendChar((char)value);
+            if (value < 0) break;
+            result.AppendChar((char)value);
+            trailingLineBreaks = value is '\r' or '\n' ? trailingLineBreaks + 1 : 0;
         }
+        while (trailingLineBreaks-- > 0) result.RemoveAt(result.Length - 1);
+        result.MakeReadOnly();
+        return result;
+    }
+
+    private static SecureString ReadSecretFromFile(string path)
+    {
+        var info = new FileInfo(path);
+        if (!info.Exists) throw new FileNotFoundException("Secret input file was not found.", path);
+        if (info.Length > 8192) throw new InvalidOperationException("Secret input file is too large (maximum 8 KB).");
+
+        using var reader = new StreamReader(path, detectEncodingFromByteOrderMarks: true);
+        var result = new SecureString();
+        var trailingLineBreaks = 0;
+        while (true)
+        {
+            var value = reader.Read();
+            if (value < 0) break;
+            result.AppendChar((char)value);
+            trailingLineBreaks = value is '\r' or '\n' ? trailingLineBreaks + 1 : 0;
+        }
+        while (trailingLineBreaks-- > 0) result.RemoveAt(result.Length - 1);
         result.MakeReadOnly();
         return result;
     }
@@ -230,16 +264,17 @@ internal static class Program
 
 Operations without opening the graphical application:
   list [--filter TEXT]          List secret names (never values)
-  add NAME [--stdin]           Add a secret
-  update NAME [--stdin]        Replace an existing secret value
+  add NAME [--stdin|--file P]  Add a secret
+  update NAME [--stdin|--file P] Replace an existing secret value
   get NAME                     Write the secret value
   exists NAME                  Check whether a secret exists
   rename OLD_NAME NEW_NAME     Rename a secret
   delete NAME [--yes]          Delete a secret
   version                      Display the program version
 
-Without --stdin, the program asks for the value at a hidden prompt. Use --stdin
-for applications and automation. Never pass a secret in command-line arguments.
+Without an input option, the program asks for the value at a hidden prompt.
+--stdin accepts multi-line input; --file imports a UTF-8 text file. Never pass a
+secret in command-line arguments. Imported source files are not deleted.
 The get command writes the plaintext value to standard output.
 
 Exit codes: 0 = success, 1 = operation failure, 2 = invalid usage,

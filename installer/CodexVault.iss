@@ -1,8 +1,8 @@
 #define AppName "Codex Vault"
-#define AppVersion "1.2.0"
+#define AppVersion "1.3.0"
 #define AppPublisher "Arkadiusz Pajda"
 #define AppExeName "CodexVault.exe"
-#define PublishDir "..\work\installer-publish-1.2.0"
+#define PublishDir "..\work\installer-publish-1.3.0"
 
 [Setup]
 AppId={{CB9E052E-0E0D-4FE8-A1E0-BE2DC73D9087}
@@ -10,8 +10,8 @@ AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppPublisher}
-AppPublisherURL=mailto:45765462+Artllex@users.noreply.github.com
-AppSupportURL=mailto:45765462+Artllex@users.noreply.github.com
+AppPublisherURL=https://github.com/Artllex/codex-vault
+AppSupportURL=https://github.com/Artllex/codex-vault/issues
 VersionInfoVersion={#AppVersion}
 VersionInfoCompany={#AppPublisher}
 VersionInfoDescription={#AppName} Installer
@@ -22,7 +22,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\outputs
-OutputBaseFilename=CodexVault-Setup-1.2.0-win-x64
+OutputBaseFilename=CodexVault-Setup-1.3.0-win-x64
 SetupIconFile=..\src\WindowsSecretManager.App\Assets\codex-vault-selected.ico
 UninstallDisplayIcon={app}\{#AppExeName}
 LicenseFile=..\LICENSE

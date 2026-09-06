@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.3.0 — 2026-09-06
+
+- Added a dedicated bilingual recovery-codes dialog with manual multi-line entry and text-file import.
+- Added a recovery-code set viewer with selection and copying of one chosen code.
+- Moved recovery-code sets into their own fixed environment and excluded them from CLI access.
+- Changed the recovery-code viewer to a two-column table.
+- Added a separate main-window view for browsing and managing recovery-code sets.
+- Combined secret rotation and renaming in one `Rotate` action.
+- Fixed case-only renames, such as `Firefox` to `firefox`.
+- Replaced native message boxes with dialogs matching the application's dark visual style.
+- Made the recovery-code viewer use an N × 2 table only when every source row contains two cells, with an N × 1 fallback otherwise.
+- Kept recovery-code cells at a fixed height with unused space left below short lists.
+- Ensured even single-code recovery sets open the dedicated viewer with copy controls.
+- Moved Windows Hello from application startup to the first reveal, copy, or rotate operation and cached verification for the lifetime of the window.
+- Added CLI support for multi-line standard input and `--file PATH` imports.
+- Added provider-specific naming examples for recovery-code entries without imposing a default name.
+
 ## 1.2.0 — 2026-09-04
 
 - Added `CodexVault.Cli.exe` for managing secrets without opening the GUI.

@@ -33,9 +33,7 @@ internal static class WindowsHelloGate
             UserConsentVerifierAvailability.DeviceBusy => T.Get(language, "Windows Hello jest obecnie zajęte.", "Windows Hello is currently busy."),
             _ => T.Get(language, "Windows Hello nie jest dostępne.", "Windows Hello is unavailable.")
         };
-        return System.Windows.MessageBox.Show(detail + "\n\n" +
-            T.Get(language, "Kontynuować bez dodatkowej weryfikacji?", "Continue without additional verification?"),
-            "Codex Vault", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning,
-            System.Windows.MessageBoxResult.No) == System.Windows.MessageBoxResult.Yes;
+        return StyledDialog.Confirm(null, "Codex Vault", detail + "\n\n" +
+            T.Get(language, "Kontynuować bez dodatkowej weryfikacji?", "Continue without additional verification?"), language);
     }
 }
