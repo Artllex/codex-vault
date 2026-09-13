@@ -1,6 +1,4 @@
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Security;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
@@ -73,7 +71,7 @@ public partial class ArchiveWindow : Window
             foreach (var name in _service.List())
             {
                 using var secret = _service.Read(name);
-                var value = ToTransientString(secret);
+                var value = SecureStringText.Read(secret);
                 items.Add(new VaultArchiveItem(name, value));
             }
             archiveBytes = VaultArchive.Create(items, protectedArchive ? password : null);
@@ -174,7 +172,7 @@ public partial class ArchiveWindow : Window
             {
                 var conflict = existing.Contains(item.Name);
                 if (conflict && !decisions[item.Name]) { skipped++; continue; }
-                using var value = ToSecureString(item.Value);
+                using var value = SecureStringText.Create(item.Value);
                 _service.Save(item.Name, value, conflict);
                 if (conflict) replaced++; else imported++;
             }
@@ -284,21 +282,6 @@ public partial class ArchiveWindow : Window
 
     private void ShowMessage(string polishTitle, string englishTitle, string polish, string english, bool error = false) =>
         StyledDialog.Show(this, T.Get(_language, polishTitle, englishTitle), T.Get(_language, polish, english), _language, error);
-
-    private static string ToTransientString(SecureString secret)
-    {
-        var pointer = Marshal.SecureStringToGlobalAllocUnicode(secret);
-        try { return Marshal.PtrToStringUni(pointer) ?? string.Empty; }
-        finally { Marshal.ZeroFreeGlobalAllocUnicode(pointer); }
-    }
-
-    private static SecureString ToSecureString(string value)
-    {
-        var result = new SecureString();
-        foreach (var character in value) result.AppendChar(character);
-        result.MakeReadOnly();
-        return result;
-    }
 
     private static byte[] ReadArchiveFile(string path)
     {

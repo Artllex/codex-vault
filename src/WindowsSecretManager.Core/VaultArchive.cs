@@ -219,7 +219,7 @@ public static class VaultArchive
         {
             if (item is null) throw new InvalidDataException("The archive contains an empty entry.");
             SecretNames.Validate(item.Name);
-            if (string.IsNullOrEmpty(item.Value) || item.Value.Length > 2560)
+            if (string.IsNullOrEmpty(item.Value) || item.Value.Length > SecretService.MaximumSecretLength)
                 throw new InvalidDataException($"The value for '{item.Name}' has an invalid length.");
             if (!names.Add(item.Name))
                 throw new InvalidDataException($"The archive contains the duplicate name '{item.Name}'.");

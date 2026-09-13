@@ -4,6 +4,7 @@ namespace WindowsSecretManager.Core;
 
 public sealed class SecretService
 {
+    public const int MaximumSecretLength = 2560;
     private readonly ISecretStore _store;
     public SecretService(ISecretStore store) => _store = store;
 
@@ -11,12 +12,17 @@ public sealed class SecretService
         .Where(SecretNames.IsSupported)
         .OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToArray();
 
+    public bool Exists(string name)
+    {
+        SecretNames.Validate(name);
+        return _store.Exists(name);
+    }
+
     public string Save(string name, SecureString value, bool overwrite)
     {
         var normalized = SecretNames.Normalize(name);
         SecretNames.Validate(normalized);
-        if (value.Length == 0) throw new ArgumentException("Sekret nie może być pusty.", nameof(value));
-        if (value.Length > 2560) throw new ArgumentException("Sekret jest zbyt długi (maksymalnie 2560 znaków).", nameof(value));
+        ValidateValue(value);
         if (!overwrite && _store.Exists(normalized)) throw new InvalidOperationException("Wpis o tej nazwie już istnieje.");
         _store.Save(normalized, value);
         return normalized;
@@ -52,8 +58,7 @@ public sealed class SecretService
         SecretNames.Validate(oldName);
         newName = newName.Trim();
         SecretNames.Validate(newName);
-        if (value.Length == 0) throw new ArgumentException("Sekret nie może być pusty.", nameof(value));
-        if (value.Length > 2560) throw new ArgumentException("Sekret jest zbyt długi (maksymalnie 2560 znaków).", nameof(value));
+        ValidateValue(value);
 
         if (string.Equals(oldName, newName, StringComparison.Ordinal))
         {
@@ -62,8 +67,9 @@ public sealed class SecretService
         }
         if (string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase))
         {
-            var temporaryName = oldName + ".case-change-" + Guid.NewGuid().ToString("N");
-            _store.Save(temporaryName, value);
+            using var originalValue = _store.Read(oldName);
+            var temporaryName = SecretNames.Prefix + ".case-change/" + Guid.NewGuid().ToString("N");
+            _store.Save(temporaryName, originalValue);
             try
             {
                 if (!_store.Delete(oldName)) throw new InvalidOperationException("Nie znaleziono wpisu o starej nazwie.");
@@ -73,7 +79,7 @@ public sealed class SecretService
             }
             catch
             {
-                if (!_store.Exists(oldName)) _store.Save(oldName, value);
+                if (!_store.Exists(oldName)) _store.Save(oldName, originalValue);
                 _store.Delete(temporaryName);
                 throw;
             }
@@ -91,5 +97,13 @@ public sealed class SecretService
             throw;
         }
         return newName;
+    }
+
+    private static void ValidateValue(SecureString value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        if (value.Length == 0) throw new ArgumentException("Sekret nie może być pusty.", nameof(value));
+        if (value.Length > MaximumSecretLength)
+            throw new ArgumentException($"Sekret jest zbyt długi (maksymalnie {MaximumSecretLength} znaków).", nameof(value));
     }
 }

@@ -88,7 +88,7 @@ public partial class MainWindow : Window
         if (SecretNames.IsRecoveryCodesName(name))
         {
             using var currentSecret = ReadOrReport(name); if (currentSecret is null) return;
-            var currentValue = ToTransientString(currentSecret);
+            var currentValue = SecureStringText.Read(currentSecret);
             try
             {
                 var codesDialog = new RecoveryCodesDialog(_language, name, currentValue) { Owner = this };
@@ -119,7 +119,7 @@ public partial class MainWindow : Window
         if (SelectedName is not { } name) return;
         if (!await EnsureSessionVerifiedAsync()) return;
         using var secret = ReadOrReport(name); if (secret is null) return;
-        var value = ToTransientString(secret);
+        var value = SecureStringText.Read(secret);
         try
         {
             if (SecretNames.IsRecoveryCodesName(name) || value.Contains('\r') || value.Contains('\n'))
@@ -135,7 +135,7 @@ public partial class MainWindow : Window
         if (SelectedName is not { } name) return;
         if (!await EnsureSessionVerifiedAsync()) return;
         using var secret = ReadOrReport(name); if (secret is null) return;
-        var value = ToTransientString(secret);
+        var value = SecureStringText.Read(secret);
         try { Clipboard.SetText(value); _copiedClipboardSequence = GetClipboardSequenceNumber(); _clipboardTimer.Stop(); _clipboardTimer.Start(); StatusText.Text = T.Get(_language, "Skopiowano. Schowek zostanie wyczyszczony za 30 sekund.", "Copied. The clipboard will be cleared in 30 seconds."); }
         finally { value = string.Empty; }
     }
@@ -158,7 +158,6 @@ public partial class MainWindow : Window
             ShowTemporaryStatus("Operacje chronione odblokowano do zamknięcia programu.", "Protected operations are unlocked until the app closes.");
         return _sessionVerified;
     }
-    private static string ToTransientString(SecureString secret) { var p = Marshal.SecureStringToGlobalAllocUnicode(secret); try { return Marshal.PtrToStringUni(p) ?? string.Empty; } finally { Marshal.ZeroFreeGlobalAllocUnicode(p); } }
     private void ClearClipboard() { _clipboardTimer.Stop(); if (_copiedClipboardSequence == 0 || GetClipboardSequenceNumber() != _copiedClipboardSequence) return; try { Clipboard.Clear(); _copiedClipboardSequence = 0; StatusText.Text = T.Get(_language, "Schowek wyczyszczono.", "Clipboard cleared."); } catch { StatusText.Text = T.Get(_language, "Nie udało się wyczyścić schowka; skopiuj inną wartość.", "Could not clear the clipboard; copy another value."); } }
     private void ShowError(Exception ex) => StyledDialog.Show(this, T.Get(_language, "Błąd", "Error"), ex.Message, _language, error: true);
     private void Refresh_Click(object sender, RoutedEventArgs e) => RefreshList();

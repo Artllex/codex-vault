@@ -137,7 +137,7 @@ internal static class Program
     }
 
     private static bool Contains(string name) =>
-        Service.List().Contains(name, StringComparer.Ordinal);
+        Service.Exists(name);
 
     private static SecureString ReadSecretInteractively()
     {

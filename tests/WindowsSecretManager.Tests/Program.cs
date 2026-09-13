@@ -13,15 +13,17 @@ var tests = new (string Name, Action Run)[]
     ("List filters and sorts", TestList),
     ("Save refuses duplicate", TestDuplicate),
     ("Rotate replaces secret", TestRotate),
+    ("Exists avoids listing every secret", TestExists),
     ("Delete removes secret", TestDelete),
-    ("Empty secret rejected", TestEmpty)
-    ,("Rename moves secret", TestRename)
-    ,("Rename refuses duplicate target", TestRenameDuplicate)
-    ,("Update changes name and value", TestUpdate)
-    ,("Update permits case-only rename", TestCaseOnlyUpdate)
-    ,("Password-protected archive round-trips", TestProtectedArchive)
-    ,("Unprotected archive round-trips", TestUnprotectedArchive)
-    ,("Archive rejects a wrong password", TestWrongArchivePassword)
+    ("Empty secret rejected", TestEmpty),
+    ("Rename moves secret", TestRename),
+    ("Rename refuses duplicate target", TestRenameDuplicate),
+    ("Update changes name and value", TestUpdate),
+    ("Update permits case-only rename", TestCaseOnlyUpdate),
+    ("Case-only update restores original after failure", TestCaseOnlyUpdateRollback),
+    ("Password-protected archive round-trips", TestProtectedArchive),
+    ("Unprotected archive round-trips", TestUnprotectedArchive),
+    ("Archive rejects a wrong password", TestWrongArchivePassword)
 };
 
 var failed = 0;
@@ -42,12 +44,25 @@ void TestList()
 }
 void TestDuplicate() { var store = new MemoryStore(); var service = new SecretService(store); using var v = Secure("one"); service.Save("AI/Key", v, false); Throws<InvalidOperationException>(() => service.Save("AI/Key", v, false)); }
 void TestRotate() { var store = new MemoryStore(); var service = new SecretService(store); using var a = Secure("a"); using var b = Secure("b"); service.Save("AI/Key", a, false); service.Save("AI/Key", b, true); using var read = service.Read("Codex.Shared/AI/Key"); Equal("b", Plain(read)); }
+void TestExists() { var store = new MemoryStore(); var service = new SecretService(store); using var value = Secure("x"); service.Save("Test", value, false); if (!service.Exists("Codex.Shared/Test")) throw new Exception("Existing secret was not found"); Equal(0, store.ListCalls); }
 void TestDelete() { var store = new MemoryStore(); var service = new SecretService(store); using var v = Secure("x"); var n = service.Save("Test", v, false); if (!service.Delete(n) || store.Exists(n)) throw new Exception("Delete failed"); }
 void TestEmpty() { using var empty = new SecureString(); Throws<ArgumentException>(() => new SecretService(new MemoryStore()).Save("Test", empty, false)); }
 void TestRename() { var store = new MemoryStore(); var service = new SecretService(store); using var v = Secure("x"); service.Save("Old", v, false); var renamed = service.Rename("Codex.Shared/Old", "SharedSecrets/New"); Equal("SharedSecrets/New", renamed); if (store.Exists("Codex.Shared/Old") || !store.Exists(renamed)) throw new Exception("Rename did not move the entry"); }
 void TestRenameDuplicate() { var store = new MemoryStore(); var service = new SecretService(store); using var v = Secure("x"); service.Save("One", v, false); service.Save("Two", v, false); Throws<InvalidOperationException>(() => service.Rename("Codex.Shared/One", "Codex.Shared/Two")); }
 void TestUpdate() { var store = new MemoryStore(); var service = new SecretService(store); using var a = Secure("a"); using var b = Secure("b"); service.Save("Old", a, false); var updated = service.Update("Codex.Shared/Old", "SharedSecrets/New", b); Equal("SharedSecrets/New", updated); if (store.Exists("Codex.Shared/Old")) throw new Exception("Old entry remains"); using var read = service.Read(updated); Equal("b", Plain(read)); }
 void TestCaseOnlyUpdate() { var store = new MemoryStore(StringComparer.OrdinalIgnoreCase); var service = new SecretService(store); using var a = Secure("a"); using var b = Secure("b"); service.Save("Firefox", a, false); var updated = service.Update("Codex.Shared/Firefox", "Codex.Shared/firefox", b); Equal("Codex.Shared/firefox", updated); using var read = service.Read(updated); Equal("b", Plain(read)); }
+void TestCaseOnlyUpdateRollback()
+{
+    var store = new MemoryStore(StringComparer.OrdinalIgnoreCase);
+    var service = new SecretService(store);
+    using var original = Secure("original");
+    using var replacement = Secure("replacement");
+    service.Save("Firefox", original, false);
+    store.FailNextSaveFor = "Codex.Shared/firefox";
+    Throws<IOException>(() => service.Update("Codex.Shared/Firefox", "Codex.Shared/firefox", replacement));
+    using var restored = service.Read("Codex.Shared/Firefox");
+    Equal("original", Plain(restored));
+}
 void TestProtectedArchive()
 {
     var source = new[] { new VaultArchiveItem("Codex.Shared/AI/Key", "sekret-ą"), new VaultArchiveItem("RecoveryCodes/GitHub", "one\ntwo") };
@@ -91,10 +106,21 @@ static void Throws<T>(Action action) where T : Exception { try { action(); } cat
 sealed class MemoryStore : ISecretStore
 {
     private readonly Dictionary<string, SecureString> _items;
+    public int ListCalls { get; private set; }
+    public string? FailNextSaveFor { get; set; }
     public MemoryStore(IEqualityComparer<string>? comparer = null) => _items = new(comparer ?? StringComparer.Ordinal);
-    public IReadOnlyList<string> ListNames() => _items.Keys.ToArray();
+    public IReadOnlyList<string> ListNames() { ListCalls++; return _items.Keys.ToArray(); }
     public bool Exists(string name) => _items.ContainsKey(name);
-    public void Save(string name, SecureString value) { if (_items.Remove(name, out var old)) old.Dispose(); _items[name] = value.Copy(); }
+    public void Save(string name, SecureString value)
+    {
+        if (string.Equals(name, FailNextSaveFor, StringComparison.Ordinal))
+        {
+            FailNextSaveFor = null;
+            throw new IOException("Simulated save failure");
+        }
+        if (_items.Remove(name, out var old)) old.Dispose();
+        _items[name] = value.Copy();
+    }
     public SecureString Read(string name) => _items.TryGetValue(name, out var value) ? value.Copy() : throw new KeyNotFoundException();
     public bool Delete(string name) { if (!_items.Remove(name, out var value)) return false; value.Dispose(); return true; }
 }
