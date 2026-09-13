@@ -162,6 +162,11 @@ public partial class MainWindow : Window
     private void ClearClipboard() { _clipboardTimer.Stop(); if (_copiedClipboardSequence == 0 || GetClipboardSequenceNumber() != _copiedClipboardSequence) return; try { Clipboard.Clear(); _copiedClipboardSequence = 0; StatusText.Text = T.Get(_language, "Schowek wyczyszczono.", "Clipboard cleared."); } catch { StatusText.Text = T.Get(_language, "Nie udało się wyczyścić schowka; skopiuj inną wartość.", "Could not clear the clipboard; copy another value."); } }
     private void ShowError(Exception ex) => StyledDialog.Show(this, T.Get(_language, "Błąd", "Error"), ex.Message, _language, error: true);
     private void Refresh_Click(object sender, RoutedEventArgs e) => RefreshList();
+    private void Archive_Click(object sender, RoutedEventArgs e)
+    {
+        new ArchiveWindow(_service, _language, EnsureSessionVerifiedAsync) { Owner = this }.ShowDialog();
+        RefreshList(SelectedName);
+    }
     private void FilterBox_TextChanged(object sender, TextChangedEventArgs e) { if (IsInitialized) ApplyFilter(SelectedName); }
     private void ApplyFilter(string? select = null)
     {
@@ -227,6 +232,7 @@ public partial class MainWindow : Window
         CopyButton.Visibility = _showingRecoveryCodes ? Visibility.Collapsed : Visibility.Visible;
         DeleteButton.Content = T.Get(_language, "Usuń", "Delete");
         RefreshButton.Content = T.Get(_language, "Odśwież", "Refresh");
+        ArchiveButton.Content = T.Get(_language, "Import / eksport", "Import / export");
         FilterLabel.Text = T.Get(_language, "Szukaj", "Search");
         AboutText.Text = T.Get(_language, "O programie", "About");
         ScopesText.Visibility = _showingRecoveryCodes ? Visibility.Collapsed : Visibility.Visible;

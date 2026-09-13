@@ -19,6 +19,9 @@ var tests = new (string Name, Action Run)[]
     ,("Rename refuses duplicate target", TestRenameDuplicate)
     ,("Update changes name and value", TestUpdate)
     ,("Update permits case-only rename", TestCaseOnlyUpdate)
+    ,("Password-protected archive round-trips", TestProtectedArchive)
+    ,("Unprotected archive round-trips", TestUnprotectedArchive)
+    ,("Archive rejects a wrong password", TestWrongArchivePassword)
 };
 
 var failed = 0;
@@ -45,6 +48,40 @@ void TestRename() { var store = new MemoryStore(); var service = new SecretServi
 void TestRenameDuplicate() { var store = new MemoryStore(); var service = new SecretService(store); using var v = Secure("x"); service.Save("One", v, false); service.Save("Two", v, false); Throws<InvalidOperationException>(() => service.Rename("Codex.Shared/One", "Codex.Shared/Two")); }
 void TestUpdate() { var store = new MemoryStore(); var service = new SecretService(store); using var a = Secure("a"); using var b = Secure("b"); service.Save("Old", a, false); var updated = service.Update("Codex.Shared/Old", "SharedSecrets/New", b); Equal("SharedSecrets/New", updated); if (store.Exists("Codex.Shared/Old")) throw new Exception("Old entry remains"); using var read = service.Read(updated); Equal("b", Plain(read)); }
 void TestCaseOnlyUpdate() { var store = new MemoryStore(StringComparer.OrdinalIgnoreCase); var service = new SecretService(store); using var a = Secure("a"); using var b = Secure("b"); service.Save("Firefox", a, false); var updated = service.Update("Codex.Shared/Firefox", "Codex.Shared/firefox", b); Equal("Codex.Shared/firefox", updated); using var read = service.Read(updated); Equal("b", Plain(read)); }
+void TestProtectedArchive()
+{
+    var source = new[] { new VaultArchiveItem("Codex.Shared/AI/Key", "sekret-ą"), new VaultArchiveItem("RecoveryCodes/GitHub", "one\ntwo") };
+    var bytes = VaultArchive.Create(source, "correct horse battery staple");
+    try
+    {
+        if (!VaultArchive.IsPasswordProtected(bytes)) throw new Exception("Archive should be protected");
+        Equal(2, VaultArchive.Inspect(bytes).ItemCount!.Value);
+        var restored = VaultArchive.Open(bytes, "correct horse battery staple");
+        Equal(2, restored.Items.Count);
+        Equal(source[0], restored.Items[0]);
+        Equal(source[1], restored.Items[1]);
+    }
+    finally { System.Security.Cryptography.CryptographicOperations.ZeroMemory(bytes); }
+}
+void TestUnprotectedArchive()
+{
+    var source = new[] { new VaultArchiveItem("SharedSecrets/Test", "value") };
+    var bytes = VaultArchive.Create(source, null);
+    try
+    {
+        if (VaultArchive.IsPasswordProtected(bytes)) throw new Exception("Archive should not be protected");
+        Equal(1, VaultArchive.Inspect(bytes).ItemCount!.Value);
+        var restored = VaultArchive.Open(bytes, null);
+        Equal(source[0], restored.Items[0]);
+    }
+    finally { System.Security.Cryptography.CryptographicOperations.ZeroMemory(bytes); }
+}
+void TestWrongArchivePassword()
+{
+    var bytes = VaultArchive.Create(new[] { new VaultArchiveItem("Codex.Shared/Test", "value") }, "right-password");
+    try { Throws<UnauthorizedAccessException>(() => VaultArchive.Open(bytes, "wrong-password")); }
+    finally { System.Security.Cryptography.CryptographicOperations.ZeroMemory(bytes); }
+}
 static SecureString Secure(string value) { var s = new SecureString(); foreach (var c in value) s.AppendChar(c); s.MakeReadOnly(); return s; }
 static string Plain(SecureString value) { var p = Marshal.SecureStringToGlobalAllocUnicode(value); try { return Marshal.PtrToStringUni(p)!; } finally { Marshal.ZeroFreeGlobalAllocUnicode(p); } }
 static void Equal<T>(T expected, T actual) where T : notnull { if (!EqualityComparer<T>.Default.Equals(expected, actual)) throw new Exception($"Expected {expected}, got {actual}"); }

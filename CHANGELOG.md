@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0 — 2026-09-13
+
+- Added one bilingual Import / Export window for complete Codex Vault backups.
+- Added portable `.cvault` archives containing both regular secrets and recovery-code sets.
+- Added optional AES-256-GCM password protection with PBKDF2-SHA256 key derivation.
+- Added an explicit warning and confirmation for unencrypted archives.
+- Added conflict handling with per-entry prompts or replace-all and skip-all strategies.
+- Protected exports and imports with the existing session-scoped Windows Hello gate; import authentication now occurs before opening an archive or resolving conflicts.
+- Added entry counts before export and immediately after selecting an archive for import.
+- Added a pre-import count and confirmation for older password-protected archives that do not contain count metadata.
+- Fixed clipping in the archive-status text.
+
 ## 1.3.0 — 2026-09-06
 
 - Added a dedicated bilingual recovery-codes dialog with manual multi-line entry and text-file import.

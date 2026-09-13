@@ -21,9 +21,10 @@ API keys often end up in `.env` files, scripts, terminal history, or source cont
 
 - Values are never saved in Codex Vault configuration or ordinary files.
 - The list displays names only, never secret values.
-- Windows Hello protects the first reveal, copy, or rotate operation in each application session.
+- Windows Hello protects the first reveal, copy, rotate, import, or export operation in each application session.
 - The polished dark UI is available in English and Polish and includes search.
 - Recovery-code sets can be entered manually or imported from a text file.
+- Complete backups can be exported to and restored from a portable `.cvault` archive, optionally protected with a password.
 - The GUI serves everyday use; the separate CLI supports scripts, applications, and local LLM agents.
 - Both an installer and a self-contained portable package are available for Windows x64.
 - No telemetry. Open source under the MIT License.
@@ -32,19 +33,25 @@ API keys often end up in `.env` files, scripts, terminal history, or source cont
 
 Ready-to-use builds are available under **[Releases](https://github.com/Artllex/codex-vault/releases/latest)**:
 
-- `CodexVault-Setup-1.3.0-win-x64.exe` — installer and in-place upgrade for an older version;
-- `CodexVault-1.3.0-win-x64.zip` — portable version that requires no installation.
+- `CodexVault-Setup-1.4.0-win-x64.exe` — installer and in-place upgrade for an older version;
+- `CodexVault-1.4.0-win-x64.zip` — portable version that requires no installation.
 
 Both packages are self-contained and do not require a preinstalled .NET runtime. The application is not yet signed with a commercial code-signing certificate, so SmartScreen or antivirus software may show a reputation warning. SHA-256 checksums are published with every release.
 
 ## Your first secret — for humans
 
-1. Start `CodexVault.exe`. Windows Hello appears only when you first reveal, copy, or rotate a protected value.
+1. Start `CodexVault.exe`. Windows Hello appears only when you first perform a protected operation, such as reveal, copy, rotate, import, or export.
 2. Select **Add secret**.
 3. Choose a scope, enter a name, and paste the value.
 4. In the consuming application, read the credential using exactly the same name.
 
 For recovery codes, open the dedicated **Recovery codes** view, choose a descriptive set name, enter the codes manually or import the provider's text file, and save. Sets are hidden from the CLI. The viewer supports selecting and copying one code at a time. Importing does not delete or encrypt the source file, so secure or remove it after verifying the saved entry.
+
+## Backup and migration
+
+Open **Import / export** in the application header. Export writes every regular secret and recovery-code set to one `.cvault` file. Password-protected archives use AES-256-GCM encryption with a key derived through PBKDF2-SHA256. An archive created without a password is portable but **not encrypted**, and the application displays an explicit warning before writing it.
+
+During import, choose how existing names should be handled: ask for each conflict, replace every existing entry, or skip every existing entry. Codex Vault resolves all per-entry questions before it begins writing. The source archive is never deleted automatically. Keep the archive secure, and do not lose its password—Codex Vault cannot recover it.
 
 Example names:
 
