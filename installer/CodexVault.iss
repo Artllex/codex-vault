@@ -1,8 +1,11 @@
 #define AppName "Codex Vault"
-#define AppVersion "1.4.0"
+#define AppVersion "1.4.1"
 #define AppPublisher "Arkadiusz Pajda"
 #define AppExeName "CodexVault.exe"
-#define PublishDir "..\work\installer-publish-1.4.0"
+#define PublishDir "..\work\installer-publish-1.4.1"
+#ifndef OutputBaseName
+#define OutputBaseName "CodexVault-Setup-1.4.1-win-x64"
+#endif
 
 [Setup]
 AppId={{CB9E052E-0E0D-4FE8-A1E0-BE2DC73D9087}
@@ -22,7 +25,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\outputs
-OutputBaseFilename=CodexVault-Setup-1.4.0-win-x64
+OutputBaseFilename={#OutputBaseName}
 SetupIconFile=..\src\WindowsSecretManager.App\Assets\codex-vault-selected.ico
 UninstallDisplayIcon={app}\{#AppExeName}
 LicenseFile=..\LICENSE
@@ -49,3 +52,10 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; WorkingDir: "
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+procedure InitializeWizard;
+begin
+  { The system checkbox grows at high DPI, while the default inset can remain too small. }
+  WizardForm.TasksList.Offset := ScaleX(12);
+end;

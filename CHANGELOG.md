@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1 — 2026-09-13
+
+- Increased the task list's DPI-aware internal checkbox inset so the desktop-shortcut checkbox remains fully visible.
+- Refactored secure-string conversion and shared secret-value validation.
+- Optimized CLI existence checks to query one credential instead of enumerating and sorting the whole vault.
+- Preserved the original value when a case-only rename fails and must be rolled back.
+
 ## 1.4.0 — 2026-09-13
 
 - Added one bilingual Import / Export window for complete Codex Vault backups.
