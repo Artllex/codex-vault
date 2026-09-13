@@ -33,8 +33,8 @@ API keys often end up in `.env` files, scripts, terminal history, or source cont
 
 Ready-to-use builds are available under **[Releases](https://github.com/Artllex/codex-vault/releases/latest)**:
 
-- `CodexVault-Setup-1.4.0-win-x64.exe` — installer and in-place upgrade for an older version;
-- `CodexVault-1.4.0-win-x64.zip` — portable version that requires no installation.
+- `CodexVault-Setup-1.4.1-win-x64.exe` — installer and in-place upgrade for an older version;
+- `CodexVault-1.4.1-win-x64.zip` — portable version that requires no installation.
 
 Both packages are self-contained and do not require a preinstalled .NET runtime. The application is not yet signed with a commercial code-signing certificate, so SmartScreen or antivirus software may show a reputation warning. SHA-256 checksums are published with every release.
 
